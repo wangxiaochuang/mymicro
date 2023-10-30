@@ -2,9 +2,13 @@ package client
 
 import (
 	"context"
-	"time"
 
 	"github.com/wxc/micro/codec"
+)
+
+var (
+	NewClient     func(...Option) Client = newRPCClient
+	DefaultClient Client                 = newRPCClient()
 )
 
 type Client interface {
@@ -68,18 +72,6 @@ type PublishOption func(*PublishOptions)
 type MessageOption func(*MessageOptions)
 
 type RequestOption func(*RequestOptions)
-
-var (
-	DefaultClient         Client = newRpcClient()
-	DefaultBackoff               = exponentialBackoff
-	DefaultRetry                 = RetryOnError
-	DefaultRetries               = 1
-	DefaultRequestTimeout        = time.Second * 5
-	DefaultPoolSize              = 100
-	DefaultPoolTTL               = time.Minute
-
-	NewClient func(...Option) Client = newRpcClient
-)
 
 func Call(ctx context.Context, request Request, response interface{}, opts ...CallOption) error {
 	return DefaultClient.Call(ctx, request, response, opts...)

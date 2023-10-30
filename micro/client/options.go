@@ -12,52 +12,71 @@ import (
 	"github.com/wxc/micro/transport"
 )
 
-type Options struct {
-	ContentType string
+var (
+	// DefaultBackoff is the default backoff function for retries.
+	DefaultBackoff = exponentialBackoff
+	// DefaultRetry is the default check-for-retry function for retries.
+	DefaultRetry = RetryOnError
+	// DefaultRetries is the default number of times a request is tried.
+	DefaultRetries = 5
+	// DefaultRequestTimeout is the default request timeout.
+	DefaultRequestTimeout = time.Second * 30
+	// DefaultConnectionTimeout is the default connection timeout.
+	DefaultConnectionTimeout = time.Second * 5
+	// DefaultPoolSize sets the connection pool size.
+	DefaultPoolSize = 100
+	// DefaultPoolTTL sets the connection pool ttl.
+	DefaultPoolTTL = time.Minute
+)
 
-	Broker    broker.Broker
-	Codecs    map[string]codec.NewCodec
+type Options struct {
+	CallOptions CallOptions
+
+	Router Router
+
 	Registry  registry.Registry
 	Selector  selector.Selector
 	Transport transport.Transport
 
-	Router Router
-
-	PoolSize int
-	PoolTTL  time.Duration
-
-	Cache *Cache
-
-	Wrappers []Wrapper
-
-	CallOptions CallOptions
+	Broker broker.Broker
 
 	Logger logger.Logger
 
 	Context context.Context
+	Codecs  map[string]codec.NewCodec
+
+	Cache *Cache
+
+	ContentType string
+
+	Wrappers []Wrapper
+
+	PoolSize int
+	PoolTTL  time.Duration
 }
 
 type CallOptions struct {
+	Context       context.Context
+	Backoff       BackoffFunc
+	Retry         RetryFunc
 	SelectOptions []selector.SelectOption
 
-	Address        []string
-	Backoff        BackoffFunc
-	Retry          RetryFunc
-	DialTimeout    time.Duration
-	Retries        int
-	RequestTimeout time.Duration
-	StreamTimeout  time.Duration
-	ServiceToken   bool
-	CacheExpiry    time.Duration
-
+	Address      []string
 	CallWrappers []CallWrapper
 
-	Context context.Context
+	ConnectionTimeout time.Duration
+	RequestTimeout    time.Duration
+	StreamTimeout     time.Duration
+	CacheExpiry       time.Duration
+	DialTimeout       time.Duration
+	Retries           int
+	ServiceToken      bool
+	ConnClose         bool
 }
 
 type PublishOptions struct {
-	Exchange string
 	Context  context.Context
+	Exchange string
 }
 
 type MessageOptions struct {
@@ -65,9 +84,9 @@ type MessageOptions struct {
 }
 
 type RequestOptions struct {
+	Context     context.Context
 	ContentType string
 	Stream      bool
-	Context     context.Context
 }
 
 func NewOptions(options ...Option) Options {
@@ -247,6 +266,12 @@ func WithRetries(i int) CallOption {
 func WithRequestTimeout(d time.Duration) CallOption {
 	return func(o *CallOptions) {
 		o.RequestTimeout = d
+	}
+}
+
+func WithConnClose() CallOption {
+	return func(o *CallOptions) {
+		o.ConnClose = true
 	}
 }
 

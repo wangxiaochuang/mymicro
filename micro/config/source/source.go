@@ -17,11 +17,11 @@ type Source interface {
 }
 
 type ChangeSet struct {
-	Data      []byte
+	Timestamp time.Time
 	Checksum  string
 	Format    string
 	Source    string
-	Timestamp time.Time
+	Data      []byte
 }
 
 type Watcher interface {

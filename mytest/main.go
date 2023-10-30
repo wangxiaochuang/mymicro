@@ -3,8 +3,9 @@ package main
 import (
 	"fmt"
 
-	"github.com/wxc/demo/config"
-	"github.com/wxc/micro/logger"
+	"mytest/config"
+
+	"go-micro.dev/v4/logger"
 )
 
 func main() {

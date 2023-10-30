@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
-	"github.com/wxc/micro/config"
-	"github.com/wxc/micro/config/source/env"
+	"go-micro.dev/v4/config"
+	"go-micro.dev/v4/config/source/env"
 )
 
 type Config struct {
