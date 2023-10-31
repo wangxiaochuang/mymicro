@@ -30,7 +30,7 @@ type Options struct {
 	Reader              reader.Reader
 	Context             context.Context
 	Source              []source.Source
-	WithWatcherDisables bool
+	WithWatcherDisabled bool
 }
 
 type Option func(o *Options)

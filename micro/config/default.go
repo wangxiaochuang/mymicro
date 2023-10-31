@@ -2,12 +2,13 @@ package config
 
 import (
 	"sync"
+	"time"
 
 	"github.com/wxc/micro/config/loader"
+	"github.com/wxc/micro/config/loader/memory"
 	"github.com/wxc/micro/config/reader"
 	"github.com/wxc/micro/config/reader/json"
 	"github.com/wxc/micro/config/source"
-	"go-micro.dev/v4/config/loader/memory"
 )
 
 type config struct {
@@ -77,7 +78,65 @@ func (c *config) Options() Options {
 }
 
 func (c *config) run() {
-	panic("in run")
+	watch := func(w loader.Watcher) error {
+		for {
+			// get changeset
+			snap, err := w.Next()
+			if err != nil {
+				return err
+			}
+
+			c.Lock()
+
+			if c.snap.Version >= snap.Version {
+				c.Unlock()
+				continue
+			}
+
+			// save
+			c.snap = snap
+
+			// set values
+			c.vals, _ = c.opts.Reader.Values(snap.ChangeSet)
+
+			c.Unlock()
+		}
+	}
+
+	for {
+		w, err := c.opts.Loader.Watch()
+		if err != nil {
+			time.Sleep(time.Second)
+			continue
+		}
+
+		done := make(chan bool)
+
+		// the stop watch func
+		go func() {
+			select {
+			case <-done:
+			case <-c.exit:
+			}
+			w.Stop()
+		}()
+
+		// block watch
+		if err := watch(w); err != nil {
+			// do something better
+			time.Sleep(time.Second)
+		}
+
+		// close done chan
+		close(done)
+
+		// if the config is closed exit
+		select {
+		case <-c.exit:
+			return
+		default:
+		}
+	}
 }
 
 func (c *config) Map() map[string]interface{} {
@@ -151,11 +210,42 @@ func (c *config) Bytes() []byte {
 }
 
 func (c *config) Load(sources ...source.Source) error {
-	panic("in Load")
+	if err := c.opts.Loader.Load(sources...); err != nil {
+		return err
+	}
+
+	snap, err := c.opts.Loader.Snapshot()
+	if err != nil {
+		return err
+	}
+
+	c.Lock()
+	defer c.Unlock()
+
+	c.snap = snap
+	vals, err := c.opts.Reader.Values(snap.ChangeSet)
+	if err != nil {
+		return err
+	}
+	c.vals = vals
+
+	return nil
 }
 
 func (c *config) Watch(path ...string) (Watcher, error) {
-	panic("in Watch")
+	value := c.Get(path...)
+
+	w, err := c.opts.Loader.Watch(path...)
+	if err != nil {
+		return nil, err
+	}
+
+	return &watcher{
+		lw:    w,
+		rd:    c.opts.Reader,
+		path:  path,
+		value: value,
+	}, nil
 }
 
 func (c *config) String() string {
