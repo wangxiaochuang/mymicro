@@ -35,6 +35,14 @@ func Tracing() TracingConfig {
 }
 
 func Load() error {
+	/*
+	* config/
+	*     source/
+	*         env/
+	*             env.go NewSource
+	* 	  config.go NewConfig
+	*     options.go WithSource
+	 */
 	configor, err := config.NewConfig(config.WithSource(env.NewSource()))
 	if err != nil {
 		return errors.Wrap(err, "configor.New")

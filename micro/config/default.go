@@ -38,6 +38,7 @@ func newConfig(opts ...Option) (Config, error) {
 	return &c, nil
 }
 
+// 填充默认选项，然后应用用户的选项
 func (c *config) Init(opts ...Option) error {
 	c.opts = Options{
 		Reader: json.NewReader(),
@@ -47,24 +48,28 @@ func (c *config) Init(opts ...Option) error {
 		o(&c.opts)
 	}
 
+	// 使用默认的内存loader
 	if c.opts.Loader == nil {
-		loaderOpts := []loader.Option{memory.WithReader(c.opts.Reader)}
+		loaderOpts := []loader.Option{loader.WithReader(c.opts.Reader)}
 		if c.opts.WithWatcherDisabled {
-			loaderOpts = append(loaderOpts, memory.WithWatcherDisabled())
+			loaderOpts = append(loaderOpts, loader.WithWatcherDisabled())
 		}
 
 		c.opts.Loader = memory.NewLoader(loaderOpts...)
 	}
+	// 加载loader
 	err := c.opts.Loader.Load(c.opts.Source...)
 	if err != nil {
 		return err
 	}
 
+	// 获取快照
 	c.snap, err = c.opts.Loader.Snapshot()
 	if err != nil {
 		return err
 	}
 
+	// 填充数据
 	c.vals, err = c.opts.Reader.Values(c.snap.ChangeSet)
 	if err != nil {
 		return err

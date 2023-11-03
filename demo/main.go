@@ -11,5 +11,5 @@ func main() {
 	if err := config.Load(); err != nil {
 		logger.Fatal(err)
 	}
-	fmt.Printf("%s\n", config.Address())
+	fmt.Printf("%s %s", config.Address(), config.Tracing().Jaeger.URL)
 }
