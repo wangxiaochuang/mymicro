@@ -99,7 +99,7 @@ func (m *memory) watch(idx int, s source.Source) {
 			w.Stop()
 		}()
 
-		// block watch
+		// 返回后watch就结束了
 		if err := watch(idx, w); err != nil {
 			// do something better
 			time.Sleep(time.Second)
@@ -153,6 +153,7 @@ func (m *memory) reload() error {
 	return nil
 }
 
+// 任意一个source有更新都会调用该函数
 func (m *memory) update() {
 	watchers := make([]*watcher, 0, m.watchers.Len())
 
@@ -165,6 +166,7 @@ func (m *memory) update() {
 	snap := m.snap
 	m.RUnlock()
 
+	// 给每一个watcher推送数据
 	for _, w := range watchers {
 		if w.getVersion() >= snap.Version {
 			continue
@@ -190,7 +192,7 @@ func (m *memory) Snapshot() (*loader.Snapshot, error) {
 		return snap, nil
 	}
 
-	// not loaded, sync
+	// 读取所有reader的数据
 	if err := m.Sync(); err != nil {
 		return nil, err
 	}
@@ -303,6 +305,7 @@ func (m *memory) Get(path ...string) (reader.Value, error) {
 func (m *memory) Load(sources ...source.Source) error {
 	var gerrors []string
 
+	// Init函数里面已经将options中的sources处理了一遍了，这里处理参数传递进来的，可能存在重复
 	for _, source := range sources {
 		set, err := source.Read()
 		if err != nil {
@@ -355,6 +358,7 @@ func (m *memory) Watch(path ...string) (loader.Watcher, error) {
 	}
 	w.version.Store(m.snap.Version)
 
+	// 调用watch，会注册进去，当有任意一个源有数据更新都会通知
 	e := m.watchers.PushBack(w)
 
 	m.Unlock()
@@ -396,6 +400,7 @@ func (w *watcher) Next() (*loader.Snapshot, error) {
 		case <-w.exit:
 			return nil, errors.New("watcher stopped")
 
+		// 接受更新检查版本和内容
 		case uv := <-w.updates:
 			if uv.version <= w.getVersion() {
 				continue
